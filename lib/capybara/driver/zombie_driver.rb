@@ -31,11 +31,23 @@ class Capybara::Driver::Zombie < Capybara::Driver::Base
     private
 
     def native_call(call)
-      socket_read "stream.end(pointers[#{@native}]#{call});"
+      socket_read "pointers[#{@native}]#{call}"
     end
 
     def socket_read(js)
       @driver.send(:socket_read, js)
+    end
+  end
+
+  class Headers
+    def initialize(hash)
+      @hash = hash
+    end
+
+    def [](key)
+      pair = @hash.find { |pair| pair[0].downcase == key.downcase }
+      # TODO We should not check this, we need to fix capybara tests
+      pair && (pair[0] == "content-type" ? pair[1].split(";")[0] : pair[1])
     end
   end
 
@@ -49,7 +61,7 @@ class Capybara::Driver::Zombie < Capybara::Driver::Base
   end
 
   def visit(path)
-    socket_read <<-JS
+    socket_send <<-JS
 browser.visit(#{url(path).to_s.inspect});
 browser.wait(function(){
   stream.end();
@@ -57,16 +69,24 @@ browser.wait(function(){
     JS
   end
 
+  def response_headers
+    Headers.new socket_json("browser.lastResponse.headers")
+  end
+
+  def status_code
+    socket_json "browser.lastResponse.status"
+  end
+
   def body
-    socket_read "stream.end(browser.html());"
+    socket_read "browser.html()"
   end
 
   def current_url
-    socket_read "stream.end(browser.location.toString());"
+    socket_read "browser.location.toString()"
   end
 
   def find(selector)
-    ids = socket_read <<-JS
+    ids = socket_send <<-JS
 var sets = [];
 browser.xpath(#{selector.to_s.inspect}).value.forEach(function(node){
   pointers.push(node);
@@ -75,17 +95,23 @@ browser.xpath(#{selector.to_s.inspect}).value.forEach(function(node){
 stream.end(sets.join(","));
     JS
 
-    ids.split(",").map do |n|
-      Node.new(self, n)
-    end
+    ids.split(",").map { |n| Node.new(self, n) }
   end
 
   private
 
-  def socket_read(js)
+  def socket_send(js)
     socket = socket_open
     socket.write js
     socket.read.tap { socket.close }
+  end
+
+  def socket_read(js)
+    socket_send "stream.end(#{js});"
+  end
+
+  def socket_json(js)
+    MultiJson.decode(socket_read("JSON.stringify(#{js})"))
   end
 
   def socket_open
