@@ -51,6 +51,9 @@ class Capybara::Driver::Zombie < Capybara::Driver::Base
     end
   end
 
+  class ZombieError < ::StandardError
+  end
+
   attr_reader :app, :rack_server, :options
 
   def initialize(app, options={})
@@ -61,12 +64,16 @@ class Capybara::Driver::Zombie < Capybara::Driver::Base
   end
 
   def visit(path)
-    socket_send <<-JS
-browser.visit(#{url(path).to_s.inspect});
-browser.wait(function(){
-  stream.end();
+    response = socket_send <<-JS
+browser.visit(#{url(path).to_s.inspect}, function(error){
+  if(error)
+    stream.end(error.stack);
+  else
+    stream.end();
 });
     JS
+
+    raise ZombieError, response unless response.empty?
   end
 
   def response_headers
