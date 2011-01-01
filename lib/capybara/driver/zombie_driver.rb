@@ -25,17 +25,21 @@ class Capybara::Driver::Zombie < Capybara::Driver::Base
     end
 
     def set(value)
-      native_call(".value = #{value.to_s.inspect}")
+      native_call(".value = #{encode(value)}")
     end
 
     private
 
     def native_call(call)
-      socket_read "pointers[#{@native}]#{call}"
+      socket_json "pointers[#{@native}]#{call}"
     end
 
-    def socket_read(js)
-      @driver.send(:socket_read, js)
+    def encode(value)
+      @driver.send(:encode, value)
+    end
+
+    def socket_json(js)
+      @driver.send(:socket_json, js)
     end
   end
 
@@ -65,15 +69,15 @@ class Capybara::Driver::Zombie < Capybara::Driver::Base
 
   def visit(path)
     response = socket_send <<-JS
-browser.visit(#{url(path).to_s.inspect}, function(error){
+browser.visit(#{encode(url(path))}, function(error){
   if(error)
-    stream.end(error.stack);
+    stream.end(JSON.stringify(error.stack));
   else
     stream.end();
 });
     JS
 
-    raise ZombieError, response unless response.empty?
+    raise ZombieError, decode(response) unless response.empty?
   end
 
   def response_headers
@@ -85,11 +89,11 @@ browser.visit(#{url(path).to_s.inspect}, function(error){
   end
 
   def body
-    socket_read "browser.html()"
+    socket_json "browser.html()"
   end
 
   def current_url
-    socket_read "browser.location.toString()"
+    socket_json "browser.location.toString()"
   end
 
   def evaluate_script(script)
@@ -99,34 +103,35 @@ browser.visit(#{url(path).to_s.inspect}, function(error){
   def find(selector)
     ids = socket_send <<-JS
 var sets = [];
-browser.xpath(#{selector.to_s.inspect}).value.forEach(function(node){
+browser.xpath(#{encode(selector.to_s)}).value.forEach(function(node){
   pointers.push(node);
   sets.push(pointers.length - 1);
 });
-stream.end(sets.join(","));
+stream.end(JSON.stringify(sets));
     JS
 
-    ids.split(",").map { |n| Node.new(self, n) }
+    decode(ids).map { |n| Node.new(self, n) }
   end
 
   private
 
-  def socket_send(js)
-    socket = socket_open
-    socket.write js
-    socket.read.tap { socket.close }
+  def encode(value)
+    MultiJson.encode(value)
   end
 
-  def socket_read(js)
-    socket_send "stream.end(#{js});"
+  def decode(value)
+    MultiJson.decode(value)
+  end
+
+  def socket_send(js)
+    socket = TCPSocket.open("127.0.0.1", 8124)
+    socket.write(js)
+    socket.close_write
+    socket.read.tap { socket.close_read }
   end
 
   def socket_json(js)
-    MultiJson.decode(socket_read("JSON.stringify(#{js})"))
-  end
-
-  def socket_open
-    TCPSocket.open("127.0.0.1", 8124)
+    decode(socket_send("stream.end(JSON.stringify(#{js}));"))
   end
 
   def url(path)
