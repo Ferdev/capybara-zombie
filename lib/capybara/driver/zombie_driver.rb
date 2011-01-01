@@ -92,6 +92,10 @@ browser.visit(#{url(path).to_s.inspect}, function(error){
     socket_read "browser.location.toString()"
   end
 
+  def evaluate_script(script)
+    socket_json script
+  end
+
   def find(selector)
     ids = socket_send <<-JS
 var sets = [];

@@ -12,4 +12,6 @@ describe Capybara::Driver::Zombie do
   # it_should_behave_like "driver with cookies support"
   # it_should_behave_like "driver with infinite redirect detection"
   # it_should_behave_like "driver with javascript support"
+  # it_should_behave_like "driver with frame support"
+  # it_should_behave_like "driver with support for window switching"
 end
