@@ -6,6 +6,28 @@ class Capybara::Driver::Zombie < Capybara::Driver::Base
       native_call(".style.display") !~ /none/
     end
 
+    def [](name)
+      name = name.to_s
+      name = "className" if name == "class"
+      native_call("[#{name.to_s.inspect}]")
+    end
+
+    def text
+      native_call(".textContent")
+    end
+
+    def tag_name
+      native_call(".tagName").downcase
+    end
+
+    def value
+      native_call(".value")
+    end
+
+    def set(value)
+      native_call(".value = #{value.to_s.inspect}")
+    end
+
     private
 
     def native_call(call)
@@ -33,6 +55,10 @@ browser.wait(function(){
   stream.end();
 });
     JS
+  end
+
+  def body
+    socket_read "stream.end(browser.html());"
   end
 
   def current_url
