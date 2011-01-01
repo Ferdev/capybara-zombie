@@ -1,6 +1,6 @@
 require File.expand_path('../spec_helper', File.dirname(__FILE__))
 
-describe Capybara::Driver::Envjs do
+describe Capybara::Driver::Zombie do
   session = nil
 
   before do
@@ -19,8 +19,8 @@ describe Capybara::Driver::Envjs do
     end
   end
 
-  it_should_behave_like "session"
-  it_should_behave_like "session with javascript support"
-  it_should_behave_like "session with headers support"
-  it_should_behave_like "session with status code support"
+  # it_should_behave_like "session"
+  # it_should_behave_like "session with javascript support"
+  # it_should_behave_like "session with headers support"
+  # it_should_behave_like "session with status code support"
 end
