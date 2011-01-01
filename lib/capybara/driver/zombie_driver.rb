@@ -1,45 +1,60 @@
-require "socket"
+require "capybara/zombie/helpers"
 
 class Capybara::Driver::Zombie < Capybara::Driver::Base
+  include Capybara::Zombie::Helpers
+
   class Node < Capybara::Driver::Node
+    include Capybara::Zombie::Helpers
+
     def visible?
-      native_call(".style.display") !~ /none/
+      native_json(".style.display") !~ /none/
     end
 
     def [](name)
       name = name.to_s
       name = "className" if name == "class"
-      native_call("[#{name.to_s.inspect}]")
+      native_json("[#{name.to_s.inspect}]")
     end
 
     def text
-      native_call(".textContent")
+      native_json(".textContent")
     end
 
     def tag_name
-      native_call(".tagName").downcase
+      native_json(".tagName").downcase
     end
 
     def value
-      native_call(".value")
+      native_json(".value")
     end
 
     def set(value)
-      native_call(".value = #{encode(value)}")
+      native_json(".value = #{encode(value)}")
+    end
+
+    def select_option
+      native_json(".selected = true")
+    end
+
+    def unselect_option
+      unless self['multiple']
+        raise Capybara::UnselectNotAllowed, "Cannot unselect option from single select box."
+      end
+      native_json(".removeAttribute('selected')")
+    end
+
+    def click
+      browser_wait :fire, "click".inspect, native_ref
     end
 
     private
 
-    def native_call(call)
-      socket_json "pointers[#{@native}]#{call}"
+    def native_json(call)
+      socket_json "#{native_ref}#{call}"
     end
 
-    def encode(value)
-      @driver.send(:encode, value)
-    end
-
-    def socket_json(js)
-      @driver.send(:socket_json, js)
+    def native_ref
+      "pointers[#{@native}]"
     end
   end
 
@@ -55,9 +70,6 @@ class Capybara::Driver::Zombie < Capybara::Driver::Base
     end
   end
 
-  class ZombieError < ::StandardError
-  end
-
   attr_reader :app, :rack_server, :options
 
   def initialize(app, options={})
@@ -68,16 +80,7 @@ class Capybara::Driver::Zombie < Capybara::Driver::Base
   end
 
   def visit(path)
-    response = socket_send <<-JS
-browser.visit(#{encode(url(path))}, function(error){
-  if(error)
-    stream.end(JSON.stringify(error.stack));
-  else
-    stream.end();
-});
-    JS
-
-    raise ZombieError, decode(response) unless response.empty?
+    browser_wait(:visit, encode(url(path)))
   end
 
   def response_headers
@@ -92,6 +95,11 @@ browser.visit(#{encode(url(path))}, function(error){
     socket_json "browser.html()"
   end
 
+  # TODO Is this really correct?
+  def source
+    socket_json "browser.document.outerHTML"
+  end
+
   def current_url
     socket_json "browser.location.toString()"
   end
@@ -100,10 +108,10 @@ browser.visit(#{encode(url(path))}, function(error){
     socket_json script
   end
 
-  def find(selector)
+  def find(selector, context=nil)
     ids = socket_send <<-JS
 var sets = [];
-browser.xpath(#{encode(selector.to_s)}).value.forEach(function(node){
+browser.xpath(#{encode(selector)}).value.forEach(function(node){
   pointers.push(node);
   sets.push(pointers.length - 1);
 });
@@ -114,25 +122,6 @@ stream.end(JSON.stringify(sets));
   end
 
   private
-
-  def encode(value)
-    MultiJson.encode(value)
-  end
-
-  def decode(value)
-    MultiJson.decode(value)
-  end
-
-  def socket_send(js)
-    socket = TCPSocket.open("127.0.0.1", 8124)
-    socket.write(js)
-    socket.close_write
-    socket.read.tap { socket.close_read }
-  end
-
-  def socket_json(js)
-    decode(socket_send("stream.end(JSON.stringify(#{js}));"))
-  end
 
   def url(path)
     rack_server.url(path)
