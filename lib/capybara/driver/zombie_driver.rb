@@ -47,7 +47,16 @@ if(#{native_ref}.tagName.toLowerCase() == "select" && #{name.to_s == "value"} &&
     end
 
     def set(value)
-      native_json(".value = #{encode(value)}")
+      socket_send <<-JS
+if(#{native_ref}.tagName == "TEXTAREA") {
+  #{native_ref}.textContent = #{encode(value)};
+} else if(#{native_ref}.getAttribute("type") == "checkbox" || #{native_ref}.getAttribute("type") == "radio") {
+  if(#{native_ref}.checked != #{encode(value)}) #{native_ref}.click();
+} else {
+  #{native_ref}.value = #{encode(value)};
+}
+stream.end();
+      JS
     end
 
     def find(selector)
