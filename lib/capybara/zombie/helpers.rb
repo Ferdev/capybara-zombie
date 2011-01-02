@@ -1,10 +1,10 @@
 require "socket"
 
 module Capybara
-  class ZombieError < ::StandardError
-  end
-
   module Zombie
+    class NodeError < ::StandardError
+    end
+
     module Helpers
       def encode(value)
         MultiJson.encode(value)
@@ -35,7 +35,7 @@ browser.#{method}(#{args.join(", ")}, function(error){
 });
         JS
 
-        raise ZombieError, decode(response) unless response.empty?
+        raise NodeError, decode(response) unless response.empty?
       end
     end
   end
