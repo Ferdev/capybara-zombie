@@ -14,11 +14,20 @@ class Capybara::Driver::Zombie < Capybara::Driver::Base
       name = name.to_s
       name = "className" if name == "class"
 
-      if tag_name == "select" && name == "value" && self['multiple']
-        find(".//option[@selected='selected']").map { |option| option[:value] || option.text  }
-      else
-        native_json("[#{name.to_s.inspect}]")
-      end
+      result = socket_send <<-JS
+if(#{native_ref}.tagName.toLowerCase() == "select" && #{name.to_s == "value"} && #{native_ref}["multiple"]) {
+  var selected = [];
+  var options = #{native_ref}.options;
+  for(var i = 0; i < #{native_ref}.length; i++)
+    if(options[i].selected)
+      selected.push(options[i].value);
+  stream.end(JSON.stringify(selected));
+} else {
+  stream.end(JSON.stringify(#{native_ref}[#{name.to_s.inspect}]));
+}
+      JS
+
+      decode(result)
     end
 
     def text
@@ -30,7 +39,7 @@ class Capybara::Driver::Zombie < Capybara::Driver::Base
     end
 
     def value
-    if tag_name == 'textarea'
+      if tag_name == 'textarea'
         text
       else
         self[:value]
@@ -46,14 +55,21 @@ class Capybara::Driver::Zombie < Capybara::Driver::Base
     end
 
     def select_option
-      native_json(".selected = true")
+      socket_send <<-JS
+browser.selectOption(browser.xpath("./ancestor::select", #{native_ref}).value[0], #{native_ref})
+stream.end()
+      JS
     end
 
     def unselect_option
       unless select_node['multiple']
         raise Capybara::UnselectNotAllowed, "Cannot unselect option from single select box."
       end
-      native_json(".removeAttribute('selected')")
+
+      socket_send <<-JS
+#{native_ref}.removeAttribute('selected')
+stream.end()
+      JS
     end
 
     def click
