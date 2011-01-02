@@ -47,7 +47,7 @@ if(#{native_ref}.tagName.toLowerCase() == "select" && #{name.to_s == "value"} &&
     end
 
     def set(value)
-      socket_send <<-JS
+      socket_write <<-JS
 if(#{native_ref}.tagName == "TEXTAREA") {
   #{native_ref}.textContent = #{encode(value)};
 } else if(#{native_ref}.getAttribute("type") == "checkbox" || #{native_ref}.getAttribute("type") == "radio") {
@@ -55,7 +55,6 @@ if(#{native_ref}.tagName == "TEXTAREA") {
 } else {
   #{native_ref}.value = #{encode(value)};
 }
-stream.end();
       JS
     end
 
@@ -64,9 +63,8 @@ stream.end();
     end
 
     def select_option
-      socket_send <<-JS
+      socket_write <<-JS
 browser.selectOption(browser.xpath("./ancestor::select", #{native_ref}).value[0], #{native_ref})
-stream.end()
       JS
     end
 
@@ -75,10 +73,7 @@ stream.end()
         raise Capybara::UnselectNotAllowed, "Cannot unselect option from single select box."
       end
 
-      socket_send <<-JS
-#{native_ref}.removeAttribute('selected')
-stream.end()
-      JS
+      socket_write "#{native_ref}.removeAttribute('selected')"
     end
 
     def click
