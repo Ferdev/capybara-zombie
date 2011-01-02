@@ -13,7 +13,12 @@ class Capybara::Driver::Zombie < Capybara::Driver::Base
     def [](name)
       name = name.to_s
       name = "className" if name == "class"
-      native_json("[#{name.to_s.inspect}]")
+
+      if tag_name == "select" && name == "value" && self['multiple']
+        find(".//option[@selected='selected']").map { |option| option[:value] || option.text  }
+      else
+        native_json("[#{name.to_s.inspect}]")
+      end
     end
 
     def text
@@ -25,11 +30,19 @@ class Capybara::Driver::Zombie < Capybara::Driver::Base
     end
 
     def value
-      native_json(".value")
+    if tag_name == 'textarea'
+        text
+      else
+        self[:value]
+      end
     end
 
     def set(value)
       native_json(".value = #{encode(value)}")
+    end
+
+    def find(selector)
+      @driver.find(selector, native_ref)
     end
 
     def select_option
@@ -37,7 +50,7 @@ class Capybara::Driver::Zombie < Capybara::Driver::Base
     end
 
     def unselect_option
-      unless self['multiple']
+      unless select_node['multiple']
         raise Capybara::UnselectNotAllowed, "Cannot unselect option from single select box."
       end
       native_json(".removeAttribute('selected')")
@@ -48,6 +61,10 @@ class Capybara::Driver::Zombie < Capybara::Driver::Base
     end
 
     private
+
+    def select_node
+      find('./ancestor::select').first
+    end
 
     def native_json(call)
       socket_json "#{native_ref}#{call}"
@@ -109,9 +126,11 @@ class Capybara::Driver::Zombie < Capybara::Driver::Base
   end
 
   def find(selector, context=nil)
+    args = [encode(selector), context].compact.join(",")
+
     ids = socket_send <<-JS
 var sets = [];
-browser.xpath(#{encode(selector)}).value.forEach(function(node){
+browser.xpath(#{args}).value.forEach(function(node){
   pointers.push(node);
   sets.push(pointers.length - 1);
 });
