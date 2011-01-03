@@ -50,10 +50,12 @@ if(#{native_ref}.tagName.toLowerCase() == "select" && #{name.to_s == "value"} &&
       socket_write <<-JS
 if(#{native_ref}.tagName == "TEXTAREA") {
   #{native_ref}.textContent = #{encode(value)};
-} else if(#{native_ref}.getAttribute("type") == "checkbox" || #{native_ref}.getAttribute("type") == "radio") {
-  if(#{native_ref}.checked != #{encode(value)}) #{native_ref}.click();
+} else if(#{native_ref}.getAttribute("type") == "checkbox") {
+  browser.domCheck(#{native_ref}, #{encode(value)});
+} else if(#{native_ref}.getAttribute("type") == "radio") {
+  browser.domChoose(#{native_ref})
 } else {
-  #{native_ref}.value = #{encode(value)};
+  browser.domFill(#{native_ref}, #{encode(value)});
 }
       JS
     end
@@ -63,17 +65,14 @@ if(#{native_ref}.tagName == "TEXTAREA") {
     end
 
     def select_option
-      socket_write <<-JS
-browser.selectOption(browser.xpath("./ancestor::select", #{native_ref}).value[0], #{native_ref})
-      JS
+      socket_write "browser.domSelect(#{native_ref})"
     end
 
     def unselect_option
       unless select_node['multiple']
         raise Capybara::UnselectNotAllowed, "Cannot unselect option from single select box."
       end
-
-      socket_write "#{native_ref}.removeAttribute('selected')"
+      socket_write "browser.domUnselect(#{native_ref})"
     end
 
     def click
