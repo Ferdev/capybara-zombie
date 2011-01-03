@@ -15,7 +15,7 @@ class Capybara::Driver::Zombie < Capybara::Driver::Base
       name = "className" if name == "class"
 
       result = socket_send <<-JS
-if(#{native_ref}.tagName.toLowerCase() == "select" && #{name.to_s == "value"} && #{native_ref}["multiple"]) {
+if(#{name.to_s == "value"} && #{native_ref}.tagName == "SELECT" && #{native_ref}.multiple) {
   var selected = [];
   var options = #{native_ref}.options;
   for(var i = 0; i < #{native_ref}.length; i++)
