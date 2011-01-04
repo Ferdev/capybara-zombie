@@ -4,8 +4,9 @@
 
 == Description:
 
-capybara-zombie is a {Capybara}[http://github.com/jnicklas/capybara] driver for zombie in node.js.
-It is similar to Capybara's rack-test driver in that it runs tests against your rack application directly but fully supports javascript in your application.
+capybara-zombie is a {Capybara}[http://github.com/jnicklas/capybara] driver for zombie.js. The goal is to have a fast driver with full support to javascript.
+
+NOTE: This gem is in active development and is not ready for use yet.
 
 == Install:
 
@@ -29,29 +30,12 @@ If you are using cucumber, you might add the following lines to your features/su
 
 == Acknowledgements
 
-Capybara and the :envjs driver for supporting the basic structure used in this gem.
+* {zombie.js}[https://github.com/assaf/zombie] for putting together a great testing tool on node.js
+* {Capybara}[http://github.com/jnicklas/capybara] for the amazing flexibility and test suite
+* {capybara-envjs}[https://github.com/smparkes/capybara-envjs] which was used as basis to create this gem
 
 == License
 
-(The MIT License)
+See MIT License.
 
-Copyright (c) 2010 Plataforma Tecnologia
-
-Permission is hereby granted, free of charge, to any person obtaining
-a copy of this software and associated documentation files (the
-'Software'), to deal in the Software without restriction, including
-without limitation the rights to use, copy, modify, merge, publish,
-distribute, sublicense, and/or sell copies of the Software, and to
-permit persons to whom the Software is furnished to do so, subject to
-the following conditions:
-
-The above copyright notice and this permission notice shall be
-included in all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED 'AS IS', WITHOUT WARRANTY OF ANY KIND,
-EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+Copyright (c) 2010 Plataforma Tecnologia (blog.plataformatec.com.br)
