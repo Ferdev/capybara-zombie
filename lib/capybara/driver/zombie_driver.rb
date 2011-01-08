@@ -159,6 +159,10 @@ stream.end(JSON.stringify(sets));
     decode(ids).map { |n| Node.new(self, n) }
   end
 
+  def reset!
+    socket_write("browser.cookies(browser.window.location.hostname, '/').clear();")
+  end
+
   private
 
   def url(path)
