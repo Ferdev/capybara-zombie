@@ -48,14 +48,19 @@ if(#{name.to_s == "value"} && #{native_ref}.tagName == "SELECT" && #{native_ref}
 
     def set(value)
       socket_write <<-JS
-if(#{native_ref}.tagName == "TEXTAREA") {
-  #{native_ref}.textContent = #{encode(value)};
-} else if(#{native_ref}.getAttribute("type") == "checkbox") {
-  browser.domCheck(#{native_ref}, #{encode(value)});
-} else if(#{native_ref}.getAttribute("type") == "radio") {
-  browser.domChoose(#{native_ref})
+var node = #{native_ref},
+    tagName = node.tagName;
+if(tagName == "TEXTAREA") {
+  node.textContent = #{encode(value)};
 } else {
-  browser.domFill(#{native_ref}, #{encode(value)});
+  var type = node.getAttribute('type');
+  if(type == "checkbox") {
+    #{encode(value)} ? browser.check(node) : browser.uncheck(node);
+  } else if(type == "radio") {
+    browser.choose(node);
+  } else {
+    browser.fill(node, #{encode(value)});
+  }
 }
       JS
     end
@@ -65,14 +70,14 @@ if(#{native_ref}.tagName == "TEXTAREA") {
     end
 
     def select_option
-      socket_write "browser.domSelect(#{native_ref})"
+      socket_write "browser.selectOption(#{native_ref})"
     end
 
     def unselect_option
       unless select_node['multiple']
         raise Capybara::UnselectNotAllowed, "Cannot unselect option from single select box."
       end
-      socket_write "browser.domUnselect(#{native_ref})"
+      socket_write "browser.unselectOption(#{native_ref})"
     end
 
     def click
