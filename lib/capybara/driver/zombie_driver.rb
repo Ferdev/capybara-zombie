@@ -7,7 +7,7 @@ class Capybara::Driver::Zombie < Capybara::Driver::Base
     include Capybara::Zombie::Helpers
 
     def visible?
-      native_json(".style.display").to_s !~ /none/
+      find("./ancestor-or-self::*[contains(@style, 'display:none') or contains(@style, 'display: none')]").empty?
     end
 
     def [](name)
